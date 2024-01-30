@@ -27,14 +27,11 @@ func printResultsJSON(results <-chan certsnap.CertificateInfo) {
 		resultSlice = append(resultSlice, result)
 	}
 
-	data, err := json.Marshal(resultSlice)
+	encoder := json.NewEncoder(os.Stdout)
 
-	if err != nil {
-		fmt.Println("Error checking SSL certificate")
-		return
+	if err := encoder.Encode(resultSlice); err != nil {
+		fmt.Println("Error checking SSL certificate:", err)
 	}
-
-	fmt.Println(string(data))
 }
 
 func printResultsTable(results <-chan certsnap.CertificateInfo) {
