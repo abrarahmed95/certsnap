@@ -25,8 +25,13 @@ func (ci *CertificateInfo) ToJSON() string {
 	return string(data)
 }
 
-func (ci *CertificateInfo) ToString() string {
+func (ci *CertificateInfo) GetRemainingDays() int {
 	remainingDays := int(time.Until(ci.Expiry).Hours() / 24)
+	return remainingDays
+}
+
+func (ci *CertificateInfo) ToString() string {
+	remainingDays := ci.GetRemainingDays()
 
 	return fmt.Sprintf("SSL certificate for %s expires on %s. Remaining time: %d days", ci.URL, ci.Expiry.Format("2006-01-02 15:04:05"), remainingDays)
 }

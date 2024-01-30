@@ -1,12 +1,15 @@
 package certsnap
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/abrarahmed95/certsnap/pkg/certsnap"
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 func ensureValidURL(value string) string {
@@ -17,21 +20,58 @@ func ensureValidURL(value string) string {
 	return value
 }
 
-func printResultDetails(result certsnap.CertificateInfo, jsonOut bool) {
-	if jsonOut {
-		fmt.Println(result.ToJSON())
-	} else {
-		fmt.Println(result.ToString())
+func printResultsJSON(results <-chan certsnap.CertificateInfo) {
+	var resultSlice []certsnap.CertificateInfo
+
+	for result := range results {
+		resultSlice = append(resultSlice, result)
 	}
+
+	data, err := json.Marshal(resultSlice)
+
+	if err != nil {
+		fmt.Println("Error checking SSL certificate")
+		return
+	}
+
+	fmt.Println(string(data))
+}
+
+func printResultsTable(results <-chan certsnap.CertificateInfo) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"#", "Domain", "Expiry date", "Remaining Days"})
+
+	i := 0
+	for result := range results {
+		i++
+
+		if result.Error != nil {
+			t.AppendRow(table.Row{
+				i,
+				result.URL,
+				"Error checking SSL certificate",
+				nil,
+			})
+		} else {
+			t.AppendRow(table.Row{
+				i,
+				result.URL,
+				result.Expiry,
+				result.GetRemainingDays(),
+			})
+		}
+	}
+
+	t.AppendSeparator()
+	t.Render()
 }
 
 func printResults(results <-chan certsnap.CertificateInfo, jsonOut bool) {
-	for result := range results {
-		if result.Error != nil {
-			log.Printf("Error checking SSL certificate for %s: %v\n", result.URL, result.Error)
-		} else {
-			printResultDetails(result, jsonOut)
-		}
+	if jsonOut {
+		printResultsJSON(results)
+	} else {
+		printResultsTable(results)
 	}
 }
 
